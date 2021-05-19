@@ -1,0 +1,202 @@
+{
+  "_comment": "Usage: packer build lacework-al2.json",
+  "description": "Builds an AMI based off AL2 for use within Lacework.",
+  "min_packer_version": "1.5.6",
+  "variables": {
+    "aws_region": "us-west-2",
+    "ami_name": "lacework-amazon-al2-node-{{ isotime \"2006-01-02-03.04.05\" }}",
+    "creator": "{{env `USER`}}",
+    "encrypted": "false",
+    "aws_profile": "lacework-prod",
+    "binary_bucket_name": "amazon-eks",
+    "binary_bucket_region": "us-west-2",
+    "kubernetes_version": null,
+    "kubernetes_build_date": null,
+    "docker_version": "19.03.6ce-4.amzn2",
+    "cni_version": "v0.6.0",
+    "cni_plugin_version": "v0.7.5",
+    "pull_cni_from_github": "true",
+    "source_ami_id": "",
+    "source_ami_owners": "137112412989",
+    "source_ami_filter_name": "amzn2-ami-minimal-hvm-*",
+    "arch": "x86_64",
+    "instance_type": "m5.2xlarge",
+    "ami_description": "EKS Kubernetes Worker AMI with AmazonLinux2 image",
+    "ssh_interface": "",
+    "ssh_username": "ec2-user",
+    "temporary_security_group_source_cidrs": "",
+    "security_group_id": "",
+    "associate_public_ip_address": "true",
+    "subnet_id": "",
+    "remote_folder": "",
+    "launch_block_device_mappings_volume_size": "4",
+    "ami_users": "",
+    "additional_yum_repos": "",
+    "ami_root_device_type": "ebs",
+    "ami_virtualization_type": "hvm",
+    "environment": "",
+    "lw_account": "{{env `LW_ACCOUNT`}}",
+    "lw_api_key": "{{env `LW_API_KEY`}}",
+    "lw_api_secret": "{{env `LW_API_SECRET`}}"
+  },
+
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{user `aws_region`}}",
+      "ami_regions": [
+        "us-west-2",
+        "eu-central-1"
+      ],
+      "source_ami": "{{user `source_ami_id`}}",
+      "ami_users": [
+        "434813966438",
+        "249446771485",
+        "660221385045",
+        "950194951070",
+        "908307521323",
+        "078779556245",
+        "463783698038",
+        "631664038012",
+        "552339396365",
+        "680354150194",
+        "807828924102",
+        "812252663823",
+        "208543714906",
+        "352603770717",
+        "922536908244",
+        "749986104549",
+        "999234443764",
+        "805599996116",
+        "335556922851",
+        "287105300711",
+        "506136542449"
+      ],      
+      "snapshot_users": "{{user `ami_users`}}",
+      "source_ami_filter": {
+        "filters": {
+          "name": "{{user `source_ami_filter_name`}}",
+          "architecture": "{{user `arch`}}",
+          "root-device-type": "{{user `ami_root_device_type`}}",
+          "state": "available",
+          "virtualization-type": "{{user `ami_virtualization_type`}}"
+        },
+        "owners": [ "{{user `source_ami_owners`}}" ],
+        "most_recent": true
+      },
+      "instance_type": "{{user `instance_type`}}",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/xvda",
+          "volume_type": "gp2",
+          "volume_size": "{{user `launch_block_device_mappings_volume_size`}}",
+          "delete_on_termination": true
+        }
+      ],
+      "ami_block_device_mappings": [
+        {
+          "device_name": "/dev/xvda",
+          "volume_type": "gp2",
+          "volume_size": 20,
+          "delete_on_termination": true
+        }
+      ],
+      "ssh_username": "{{user `ssh_username`}}",
+      "ssh_interface": "{{user `ssh_interface`}}",
+      "temporary_security_group_source_cidrs": "{{user `temporary_security_group_source_cidrs`}}",
+      "security_group_id": "{{user `security_group_id`}}",
+      "associate_public_ip_address": "{{user `associate_public_ip_address`}}",
+      "ena_support": true,
+      "ssh_pty": true,
+      "encrypt_boot": "{{user `encrypted`}}",
+      "kms_key_id": "{{user `kms_key_id`}}",
+      "run_tags": {
+          "creator": "{{user `creator`}}"
+      },
+      "subnet_id": "{{user `subnet_id`}}",
+      "tags": {
+          "Name": "{{user `ami_name`}}",
+          "created": "{{timestamp}}",
+          "docker_version": "{{ user `docker_version`}}",
+          "source_ami_id": "{{ user `source_ami_id`}}",
+          "kubernetes": "{{ user `kubernetes_version`}}/{{ user `kubernetes_build_date` }}/bin/linux/{{ user `arch` }}",
+          "cni_version": "{{ user `cni_version`}}",
+          "cni_plugin_version": "{{ user `cni_plugin_version`}}",
+          "environment": "{{ user `environment`}}"
+      },
+      "ami_name": "{{user `ami_name`}}",
+      "ami_description": "{{ user `ami_description` }}, (k8s: {{ user `kubernetes_version`}}, docker:{{ user `docker_version`}})"
+    }
+  ],
+
+  "provisioners": [
+    {
+        "type": "shell",
+        "remote_folder": "{{ user `remote_folder`}}",
+        "script": "{{template_dir}}/scripts/install_additional_repos.sh",
+        "environment_vars": [
+          "ADDITIONAL_YUM_REPOS={{user `additional_yum_repos`}}"
+        ]
+    },
+    {
+      "type": "shell",
+      "remote_folder": "{{ user `remote_folder`}}",
+      "expect_disconnect": true,
+      "script": "{{template_dir}}/scripts/upgrade_kernel.sh"
+    },
+    {
+      "type": "shell",
+      "pause_before": "90s",
+      "remote_folder": "{{ user `remote_folder`}}",
+      "inline": ["mkdir -p /tmp/worker/"]
+    },
+    {
+      "type": "file",
+      "source": "{{template_dir}}/files/",
+      "destination": "/tmp/worker/"
+    },
+    {
+      "type": "shell",
+      "remote_folder": "{{ user `remote_folder`}}",
+      "script": "{{template_dir}}/scripts/install-worker.sh",
+      "environment_vars": [
+        "KUBERNETES_VERSION={{user `kubernetes_version`}}",
+        "KUBERNETES_BUILD_DATE={{user `kubernetes_build_date`}}",
+        "BINARY_BUCKET_NAME={{user `binary_bucket_name`}}",
+        "BINARY_BUCKET_REGION={{user `binary_bucket_region`}}",
+        "DOCKER_VERSION={{user `docker_version`}}",
+        "CNI_VERSION={{user `cni_version`}}",
+        "CNI_PLUGIN_VERSION={{user `cni_plugin_version`}}",
+        "PULL_CNI_FROM_GITHUB={{user `pull_cni_from_github`}}",
+        "AWS_ACCESS_KEY_ID={{user `aws_access_key_id`}}",
+        "AWS_SECRET_ACCESS_KEY={{user `aws_secret_access_key`}}",
+        "AWS_SESSION_TOKEN={{user `aws_session_token`}}"
+      ]
+    },
+    {
+      "type": "shell",
+      "remote_folder": "{{ user `remote_folder`}}",
+      "script": "{{template_dir}}/scripts/cleanup_additional_repos.sh",
+      "environment_vars": [
+        "ADDITIONAL_YUM_REPOS={{user `additional_yum_repos`}}"
+      ]
+    },
+    {
+      "type": "shell",
+      "remote_folder": "{{ user `remote_folder`}}",
+      "script": "{{template_dir}}/scripts/validate.sh"
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "manifest.json",
+      "strip_path": true
+    },
+    {
+      "type": "manifest",
+      "output": "{{user `ami_name`}}-manifest.json",
+      "strip_path": true
+    }
+  ]
+}
