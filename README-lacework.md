@@ -31,7 +31,7 @@ make
 
 For production appropriate images
 ```bash
-make 1.18 environment=production
+make 1.18 environment=production -f Makefile-lacework
 ```
 
 NOTE: The [terraform code](https://github.com/lacework/terraform/tree/master/eks/) that manages the EKS environments uses a data lookup for the latest image matching ec2 tag `environment=production` on the AMI. If no environment tag is set, the environment will not see the new image.
