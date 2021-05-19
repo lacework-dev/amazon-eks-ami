@@ -4,7 +4,7 @@
   "min_packer_version": "1.5.6",
   "variables": {
     "aws_region": "us-west-2",
-    "ami_name": "lacework-amazon-al2-node-{{ isotime \"2006-01-02-03.04.05\" }}",
+    "ami_name": null,
     "creator": "{{env `USER`}}",
     "encrypted": "false",
     "aws_profile": "lacework-prod",
@@ -12,9 +12,11 @@
     "binary_bucket_region": "us-west-2",
     "kubernetes_version": null,
     "kubernetes_build_date": null,
-    "docker_version": "19.03.6ce-4.amzn2",
-    "cni_version": "v0.6.0",
-    "cni_plugin_version": "v0.7.5",
+    "kernel_version": "",
+    "docker_version": "19.03.13ce-1.amzn2",
+    "containerd_version": "1.4.1-2.amzn2",
+    "runc_version": "1.0.0-0.1.20200826.gitff819c7.amzn2",
+    "cni_plugin_version": "v0.8.6",
     "pull_cni_from_github": "true",
     "source_ami_id": "",
     "source_ami_owners": "137112412989",
@@ -88,7 +90,7 @@
       "launch_block_device_mappings": [
         {
           "device_name": "/dev/xvda",
-          "volume_type": "gp2",
+          "volume_type": "gp3",
           "volume_size": "{{user `launch_block_device_mappings_volume_size`}}",
           "delete_on_termination": true
         }
@@ -96,7 +98,7 @@
       "ami_block_device_mappings": [
         {
           "device_name": "/dev/xvda",
-          "volume_type": "gp2",
+          "volume_type": "gp3",
           "volume_size": 20,
           "delete_on_termination": true
         }
@@ -118,6 +120,7 @@
           "Name": "{{user `ami_name`}}",
           "created": "{{timestamp}}",
           "docker_version": "{{ user `docker_version`}}",
+          "containerd_version": "{{ user `containerd_version`}}",
           "source_ami_id": "{{ user `source_ami_id`}}",
           "kubernetes": "{{ user `kubernetes_version`}}/{{ user `kubernetes_build_date` }}/bin/linux/{{ user `arch` }}",
           "cni_version": "{{ user `cni_version`}}",
@@ -142,7 +145,11 @@
       "type": "shell",
       "remote_folder": "{{ user `remote_folder`}}",
       "expect_disconnect": true,
-      "script": "{{template_dir}}/scripts/upgrade_kernel.sh"
+      "script": "{{template_dir}}/scripts/upgrade_kernel.sh",
+      "environment_vars": [
+        "KUBERNETES_VERSION={{user `kubernetes_version`}}",
+        "KERNEL_VERSION={{user `kernel_version`}}"
+      ]
     },
     {
       "type": "shell",
@@ -165,12 +172,16 @@
         "BINARY_BUCKET_NAME={{user `binary_bucket_name`}}",
         "BINARY_BUCKET_REGION={{user `binary_bucket_region`}}",
         "DOCKER_VERSION={{user `docker_version`}}",
+        "CONTAINERD_VERSION={{user `containerd_version`}}",
+        "RUNC_VERSION={{user `runc_version`}}",
         "CNI_VERSION={{user `cni_version`}}",
         "CNI_PLUGIN_VERSION={{user `cni_plugin_version`}}",
         "PULL_CNI_FROM_GITHUB={{user `pull_cni_from_github`}}",
         "AWS_ACCESS_KEY_ID={{user `aws_access_key_id`}}",
         "AWS_SECRET_ACCESS_KEY={{user `aws_secret_access_key`}}",
-        "AWS_SESSION_TOKEN={{user `aws_session_token`}}"
+        "AWS_SESSION_TOKEN={{user `aws_session_token`}}".,
+        "CLEANUP_IMAGE={{user `cleanup_image`}}",
+        "SONOBUOY_E2E_REGISTRY={{user `sonobuoy_e2e_registry`}}"
       ]
     },
     {
