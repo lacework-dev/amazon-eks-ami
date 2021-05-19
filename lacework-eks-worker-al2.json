@@ -179,7 +179,7 @@
         "PULL_CNI_FROM_GITHUB={{user `pull_cni_from_github`}}",
         "AWS_ACCESS_KEY_ID={{user `aws_access_key_id`}}",
         "AWS_SECRET_ACCESS_KEY={{user `aws_secret_access_key`}}",
-        "AWS_SESSION_TOKEN={{user `aws_session_token`}}".,
+        "AWS_SESSION_TOKEN={{user `aws_session_token`}}",
         "CLEANUP_IMAGE={{user `cleanup_image`}}",
         "SONOBUOY_E2E_REGISTRY={{user `sonobuoy_e2e_registry`}}"
       ]
